@@ -18,7 +18,7 @@
         android:layout_marginTop="100dp"
         android:gravity="center"
         android:singleLine="true"
-        android:text="Total Distance:"
+        android:text="@string/distance_covered"
         android:textColor="@android:color/black"
         android:textSize="25sp"
         android:textStyle="bold" />
@@ -30,21 +30,9 @@
         android:layout_marginTop="150dp"
         android:gravity="center"
         android:singleLine="true"
-        android:text="Instantaneous Speed:"
+        android:text="@string/speed"
         android:textColor="@android:color/black"
         android:textSize="18sp" />
-
-    <TextView
-        android:id="@+id/timetext"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="190dp"
-        android:gravity="center"
-        android:singleLine="true"
-        android:text="Total Time:"
-        android:textColor="@android:color/black"
-        android:textSize="17sp" />
-
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -59,7 +47,7 @@
             android:layout_gravity="bottom"
             android:background="@android:color/black"
             android:paddingBottom="0dp"
-            android:text="Start Calculating" />
+            android:text="@string/start" />
 
         <Button
             android:id="@+id/pause"
@@ -68,7 +56,7 @@
             android:layout_gravity="left"
             android:layout_weight="1"
             android:background="@android:color/black"
-            android:text="Pause"
+            android:text="@string/pause"
             android:visibility="gone" />
 
         <Button
@@ -76,11 +64,18 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_gravity="right"
-            android:layout_marginLeft="2dp"
+            android:layout_marginStart="2dp"
             android:layout_weight="1"
             android:background="@android:color/black"
-            android:text="Stop"
+            android:text="@string/stop"
             android:visibility="gone" />
     </LinearLayout>
+
+    <ProgressBar
+        android:id="@+id/progressBar"
+        android:visibility="gone"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"/>
 
 </FrameLayout>
