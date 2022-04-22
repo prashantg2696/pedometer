@@ -1,43 +1,66 @@
 package com.example.pedometer
 
+import android.Manifest
 import android.app.Service
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.location.Location
 import android.os.Binder
-import android.os.Bundle
 import android.os.IBinder
-import com.google.android.gms.common.ConnectionResult
-import com.google.android.gms.common.api.GoogleApiClient
-import com.google.android.gms.common.api.GoogleApiClient.ConnectionCallbacks
-import com.google.android.gms.common.api.GoogleApiClient.OnConnectionFailedListener
-import com.google.android.gms.location.LocationListener
-import com.google.android.gms.location.LocationRequest
-import com.google.android.gms.location.LocationServices
+import android.os.Looper
+import androidx.core.app.ActivityCompat
+import com.google.android.gms.location.*
 import java.text.DecimalFormat
 
-class LocationService : Service(), LocationListener,
-    ConnectionCallbacks, OnConnectionFailedListener {
+class LocationService : Service() {
     private var mLocationRequest: LocationRequest? = null
-    private var mGoogleApiClient: GoogleApiClient? = null
     private var mCurrentLocation: Location? = null
     private var lStart: Location? = null
     private var lEnd: Location? = null
     private var speed = 0.0
     private val mBinder: IBinder = LocalBinder()
     private var locationServiceCallback: LocationServiceCallback? = null
+    private var fusedLocationProviderClient: FusedLocationProviderClient? = null
 
     fun setCallback(callback: LocationServiceCallback) {
         locationServiceCallback = callback
     }
 
+    private val mLocationCallback: LocationCallback = object : LocationCallback() {
+        override fun onLocationResult(locationResult: LocationResult?) {
+            if (locationResult != null) {
+                for (location in locationResult.locations) {
+                    locationServiceCallback?.hideProgress()
+                    mCurrentLocation = location
+                    if (lStart == null) {
+                        lStart = mCurrentLocation
+                        lEnd = mCurrentLocation
+                    } else lEnd = mCurrentLocation
+
+                    updateUI()
+                    speed = getSpeedInKmPerHr(location)
+                }
+            }
+        }
+    }
+
     override fun onBind(intent: Intent): IBinder {
         createLocationRequest()
-        mGoogleApiClient = GoogleApiClient.Builder(this)
-            .addApi(LocationServices.API)
-            .addConnectionCallbacks(this)
-            .addOnConnectionFailedListener(this)
-            .build()
-        mGoogleApiClient?.connect()
+        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this)
+        if (ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED
+        ) {
+            fusedLocationProviderClient?.requestLocationUpdates(
+                mLocationRequest,
+                mLocationCallback,
+                Looper.myLooper()
+            )
+        }
         return mBinder
     }
 
@@ -48,44 +71,15 @@ class LocationService : Service(), LocationListener,
         mLocationRequest!!.priority = LocationRequest.PRIORITY_HIGH_ACCURACY
     }
 
-    override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
-        return super.onStartCommand(intent, flags, startId)
-    }
-
-    override fun onConnected(bundle: Bundle?) {
-        try {
-            LocationServices.FusedLocationApi.requestLocationUpdates(
-                mGoogleApiClient, mLocationRequest, this
-            )
-        } catch (e: SecurityException) {
-        }
-    }
-
     private fun stopLocationUpdates() {
-        LocationServices.FusedLocationApi.removeLocationUpdates(
-            mGoogleApiClient, this
-        )
+        fusedLocationProviderClient?.removeLocationUpdates(mLocationCallback)
         distance = 0.0
-    }
-
-    override fun onConnectionSuspended(i: Int) {}
-    override fun onLocationChanged(location: Location) {
-        locationServiceCallback?.hideProgress()
-        mCurrentLocation = location
-        if (lStart == null) {
-            lStart = mCurrentLocation
-            lEnd = mCurrentLocation
-        } else lEnd = mCurrentLocation
-
-        updateUI()
-        speed = getSpeedInKmPerHr(location)
     }
 
     //Calculating the speed with speed property it returns speed in m/s so we are converting it into km/h
     private fun getSpeedInKmPerHr(location: Location) =
         (location.speed * 18 / 5).toDouble()
 
-    override fun onConnectionFailed(connectionResult: ConnectionResult) {}
     inner class LocalBinder : Binder() {
         val service: LocationService
             get() = this@LocationService
@@ -112,7 +106,6 @@ class LocationService : Service(), LocationListener,
 
     override fun onUnbind(intent: Intent): Boolean {
         stopLocationUpdates()
-        if (mGoogleApiClient!!.isConnected) mGoogleApiClient!!.disconnect()
         lStart = null
         lEnd = null
         distance = 0.0

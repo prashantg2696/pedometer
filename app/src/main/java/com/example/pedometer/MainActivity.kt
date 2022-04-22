@@ -1,6 +1,5 @@
 package com.example.pedometer
 
-import android.app.Activity
 import android.content.ComponentName
 import android.content.Intent
 import android.content.ServiceConnection
@@ -43,7 +42,7 @@ class MainActivity : AppCompatActivity(), LocationServiceCallback {
     private var locationResultLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) {
-            startCapturing()
+        startCapturing()
     }
 
     private val serviceConnection: ServiceConnection = object : ServiceConnection {
