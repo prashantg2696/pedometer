@@ -8,6 +8,7 @@ import android.location.Location
 import android.os.Binder
 import android.os.IBinder
 import android.os.Looper
+import android.util.Log
 import androidx.core.app.ActivityCompat
 import com.google.android.gms.location.*
 import java.text.DecimalFormat
@@ -27,10 +28,11 @@ class LocationService : Service() {
     }
 
     private val mLocationCallback: LocationCallback = object : LocationCallback() {
-        override fun onLocationResult(locationResult: LocationResult?) {
-            if (locationResult != null) {
-                for (location in locationResult.locations) {
-                    locationServiceCallback?.hideProgress()
+        override fun onLocationResult(locationResult: LocationResult) {
+            for (location in locationResult.locations) {
+                Log.d("TAG", "onLocationResult: ${location.accuracy}")
+                locationServiceCallback?.hideProgress()
+                if (!location.hasAccuracy() || location.accuracy > 50) {
                     mCurrentLocation = location
                     if (lStart == null) {
                         lStart = mCurrentLocation
@@ -55,11 +57,13 @@ class LocationService : Service() {
                 Manifest.permission.ACCESS_COARSE_LOCATION
             ) == PackageManager.PERMISSION_GRANTED
         ) {
-            fusedLocationProviderClient?.requestLocationUpdates(
-                mLocationRequest,
-                mLocationCallback,
-                Looper.myLooper()
-            )
+            if (mLocationRequest != null && Looper.myLooper() != null) {
+                fusedLocationProviderClient?.requestLocationUpdates(
+                    mLocationRequest!!,
+                    mLocationCallback,
+                    Looper.myLooper()!!
+                )
+            }
         }
         return mBinder
     }
