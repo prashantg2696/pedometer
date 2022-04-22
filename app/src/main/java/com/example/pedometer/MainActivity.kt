@@ -1,5 +1,6 @@
 package com.example.pedometer
 
+import android.app.Activity
 import android.content.ComponentName
 import android.content.Intent
 import android.content.ServiceConnection
@@ -12,10 +13,12 @@ import android.widget.Button
 import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
 import com.example.pedometer.LocationService.LocalBinder
+import com.example.pedometer.utils.PermissionUtil
 
 
 class MainActivity : AppCompatActivity(), LocationServiceCallback {
@@ -28,6 +31,20 @@ class MainActivity : AppCompatActivity(), LocationServiceCallback {
     private lateinit var speedTextView: TextView
     private lateinit var imageView: ImageView
     private lateinit var progressBar: ProgressBar
+
+    private var permissionResultLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) {
+        if (it) {
+            startCapturing()
+        }
+    }
+
+    private var locationResultLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) {
+            startCapturing()
+    }
 
     private val serviceConnection: ServiceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName, service: IBinder) {
@@ -61,7 +78,14 @@ class MainActivity : AppCompatActivity(), LocationServiceCallback {
 
     private fun viewClickEvents() {
         startButton.setOnClickListener {
-            startCapturing()
+            if (PermissionUtil.checkPermissionWithExplanation(
+                    this,
+                    android.Manifest.permission.ACCESS_FINE_LOCATION,
+                    permissionResultLauncher
+                )
+            ) {
+                startCapturing()
+            }
         }
         pauseButton.setOnClickListener {
             pauseCapturing()
@@ -128,10 +152,11 @@ class MainActivity : AppCompatActivity(), LocationServiceCallback {
             .setPositiveButton(
                 "Enable GPS"
             ) { _, _ ->
-                val callGPSSettingIntent = Intent(
-                    Settings.ACTION_LOCATION_SOURCE_SETTINGS
+                locationResultLauncher.launch(
+                    Intent(
+                        Settings.ACTION_LOCATION_SOURCE_SETTINGS
+                    )
                 )
-                startActivity(callGPSSettingIntent)
             }
         alertDialogBuilder.setNegativeButton(
             "Cancel"
